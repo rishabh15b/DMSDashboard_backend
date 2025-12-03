@@ -17,6 +17,7 @@ class DocumentBase(BaseModel):
     pdf_url: Optional[str] = None
     po_number: Optional[str] = None
     invoice_number: Optional[str] = None
+    msa_number: Optional[str] = None
 
 class DocumentCreate(DocumentBase):
     pass
@@ -35,6 +36,7 @@ class DocumentUpdate(BaseModel):
     pdf_url: Optional[str] = None
     po_number: Optional[str] = None
     invoice_number: Optional[str] = None
+    msa_number: Optional[str] = None
 
 class Document(DocumentBase):
     id: str
@@ -145,3 +147,21 @@ class DocumentDetailResponse(BaseModel):
     document: Document
     related_exceptions: List[Exception]
     related_alerts: List[Alert]
+
+# MSA bucket schemas
+class MSABucket(BaseModel):
+    msa_number: str
+    msa_documents: List[Document]
+    po_documents: List[Document]
+    invoice_documents: List[Document]
+    other_documents: List[Document]
+    total_msa_value: float
+    total_po_value: float
+    total_invoice_value: float
+    expires_on: Optional[datetime] = None
+    days_until_expiry: Optional[int] = None
+    expiring_soon: bool = False
+
+class MSABucketResponse(BaseModel):
+    buckets: List[MSABucket]
+    unlinked_documents: List[Document]

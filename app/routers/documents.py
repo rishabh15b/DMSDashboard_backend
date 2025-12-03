@@ -5,7 +5,7 @@ from app.database import get_db
 from app.services.document_service import DocumentService
 from app.services.exception_service import ExceptionService
 from app.services.alert_service import AlertService
-from app.schemas import Document, DocumentCreate, DocumentUpdate, DocumentDetailResponse
+from app.schemas import Document, DocumentCreate, DocumentUpdate, DocumentDetailResponse, MSABucketResponse
 from typing import Dict, Any
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
@@ -23,6 +23,17 @@ async def get_documents(
         return {"documents": documents}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch documents: {str(e)}")
+
+@router.get("/msa-buckets", response_model=MSABucketResponse)
+async def get_msa_buckets(
+    db: Session = Depends(get_db)
+):
+    """Group documents by MSA number, including linked POs and invoices"""
+    try:
+        document_service = DocumentService(db)
+        return document_service.get_msa_buckets()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch MSA buckets: {str(e)}")
 
 @router.get("/{document_id}", response_model=DocumentDetailResponse)
 async def get_document_detail(

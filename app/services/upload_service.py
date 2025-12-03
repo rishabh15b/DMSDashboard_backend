@@ -319,8 +319,15 @@ class UploadService:
         
         # Create document
         document_service = DocumentService(db)
+        document_title = (
+            extracted_data.get("po_number")
+            or extracted_data.get("invoice_number")
+            or extracted_data.get("title")
+            or filename
+        )
+
         document_create = DocumentCreate(
-            title=extracted_data.get("title", filename),
+            title=document_title,
             category=document_type,
             client=extracted_data.get("client", "Unknown Client"),
             vendor=extracted_data.get("vendor"),
@@ -333,7 +340,8 @@ class UploadService:
             file_path=filename,
             processed=True,
             po_number=extracted_data.get("po_number"),
-            invoice_number=extracted_data.get("invoice_number")
+            invoice_number=extracted_data.get("invoice_number"),
+            msa_number=extracted_data.get("msa_number")
         )
         
         # Use the enhanced duplicate check method

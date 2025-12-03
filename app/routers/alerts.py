@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Dict
+from datetime import datetime
 from app.database import get_db
 from app.services.alert_service import AlertService
+from app.services.document_service import DocumentService
 from app.schemas import Alert, AlertCreate, AlertUpdate
-from typing import Dict, List
 
 router = APIRouter(prefix="/api/alerts", tags=["alerts"])
 
@@ -18,6 +19,12 @@ async def get_alerts(
     """Get list of alerts with pagination. By default, returns unacknowledged alerts first."""
     try:
         alert_service = AlertService(db)
+        generated_alerts: List[Alert] = []
+
+        if acknowledged is None or acknowledged is False:
+            document_service = DocumentService(db)
+            generated_alerts = document_service.generate_unlinked_alerts()
+
         if acknowledged is None:
             # Default: Get unacknowledged alerts first, then acknowledged
             unacknowledged = alert_service.get_alerts(skip=0, limit=limit, acknowledged=False)
@@ -30,8 +37,12 @@ async def get_alerts(
                 alerts = unacknowledged + acknowledged_alerts
             else:
                 alerts = unacknowledged
+            alerts = generated_alerts + alerts
         else:
             alerts = alert_service.get_alerts(skip=skip, limit=limit, acknowledged=acknowledged)
+            if not acknowledged:
+                alerts = generated_alerts + alerts
+
         return {"alerts": alerts}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch alerts: {str(e)}")

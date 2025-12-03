@@ -571,6 +571,7 @@ class PDFProcessor:
             "due_date": self._extract_due_date(combined_text),
             "po_number": self._extract_po_number(combined_text),
             "invoice_number": self._extract_invoice_number(combined_text),
+            "msa_number": self._extract_msa_number(combined_text),
             "vendor_address": self._extract_vendor_address(combined_text),
             "client_address": self._extract_client_address(combined_text),
             "summary": self._extract_summary(combined_text),
@@ -1053,6 +1054,44 @@ class PDFProcessor:
                 if len(po_number) > 2 and not po_number.lower().islower():
                     return po_number
         
+        return None
+
+    def _extract_msa_number(self, text: str) -> Optional[str]:
+        """Extract MSA number for linking POs and invoices to service agreements"""
+        clean_text = text.strip()
+        lines = clean_text.split('\n')
+
+        # Look for labels such as "MSA #", "MSA Number", "Master Service Agreement"
+        for line in lines:
+            line_lower = line.lower()
+            if "msa" in line_lower or "master service agreement" in line_lower:
+                match = re.search(
+                    r"(?:msa|master service agreement)[#:\s-]*(?:number|no\.|#)?\s*([A-Z0-9/_-]+)",
+                    line,
+                    re.IGNORECASE,
+                )
+                if match:
+                    value = match.group(1).strip()
+                    if len(value) > 3:
+                        return value.upper()
+
+        # Fallback patterns that scan the whole document
+        patterns = [
+            r"MSA[#:\s-]*(?:Number|No\.|#)?\s*([A-Z0-9/_-]+)",
+            r"Master\s+Service\s+Agreement\s*(?:Number|No\.|#)?\s*([A-Z0-9/_-]+)",
+            r"(MSA[-\s]?[0-9]{4,}[-/][0-9]{2,})",
+        ]
+
+        for pattern in patterns:
+            match = re.search(pattern, clean_text, re.IGNORECASE)
+            if match:
+                value = match.group(1).strip()
+                if len(value) > 3:
+                    value = value.replace(" ", "").upper()
+                    if not value.startswith("MSA"):
+                        value = f"MSA-{value}"
+                    return value
+
         return None
     
     def _extract_invoice_number(self, text: str) -> Optional[str]:
